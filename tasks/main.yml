@@ -1,0 +1,17 @@
+---
+# tasks file for mapr-kafka
+
+- name: download the kafka binary distribution
+  get_url: dest=/tmp url=http://www.gtlib.gatech.edu/pub/apache/kafka/0.8.1.1/kafka_2.9.2-0.8.1.1.tgz sha256sum=cb141c1d50b1bd0d741d68e5e21c090341d961cd801e11e42fb693fa53e9aaed
+
+- name: unpack kafka to /opt
+  command: creates=/opt/kafka_2.9.2-0.8.1.1 tar -C /opt -xzf /tmp/kafka_2.9.2-0.8.1.1.tgz 
+
+- name: change logs/ owner to mapr:mapr
+  file: path=/opt/kafka_2.9.2-0.8.1.1/logs mode=0750 owner=mapr group=mapr state=directory
+
+- name: fix log-cleaner.log location in log4j config
+  lineinfile: dest=/opt/kafka_2.9.2-0.8.1.1/config/log4j.properties regexp="^log4j.appender.cleanerAppender.File" line="log4j.appender.cleanerAppender.File=${kafka.logs.dir}/log-cleaner.log"
+
+- name: set zookeeper in server.properties
+  lineinfile: dest=/opt/kafka_2.9.2-0.8.1.1/config/server.properties regexp="^zookeeper.connect" line="zookeeper.connect={{zookeeper}}" state=present

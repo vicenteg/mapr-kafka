@@ -1,0 +1,6 @@
+---
+# defaults file for mapr-kafka
+
+# default for sandbox - you will almost certainly want
+# to change this in real life
+zookeeper: localhost:5181
