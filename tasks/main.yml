@@ -15,3 +15,12 @@
 
 - name: set zookeeper in server.properties
   lineinfile: dest=/opt/kafka_2.9.2-0.8.1.1/config/server.properties regexp="^zookeeper.connect" line="zookeeper.connect={{zookeeper}}" state=present
+
+- name: add a warden.conf for kafka
+  template: src=warden.kafka.conf.j2 dest=/opt/mapr/conf/conf.d/warden.kafka.conf owner=mapr group=mapr
+
+- name: copy a status script
+  copy: src=kafka-server-status.sh dest=/opt/kafka_2.9.2-0.8.1.1/bin mode=0755 owner=root group=root
+
+- name: edit kafka-server-stop.sh to change signal to SIGTERM instead of SIGINT
+  lineinfile: dest=/opt/kafka_2.9.2-0.8.1.1/bin/kafka-server-stop.sh line="ps ax | grep -i 'kafka\.Kafka' | grep java | grep -v grep | awk '{print $1}' | xargs kill -SIGTERM" regexp="SIGINT"
