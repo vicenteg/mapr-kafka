@@ -8,6 +8,9 @@ Requirements
 
 You need a functional MapR cluster. You should know your zookeeper IP addresses, and you should install on nodes which are running mapr-fileserver and mapr-nfs.
 
+- Note that this currently is hard coded to use kafka 0.8.1.1. 
+- 
+
 Role Variables
 --------------
 
@@ -21,11 +24,12 @@ A list of other roles hosted on Galaxy should go here, plus any details in regar
 Example Playbook
 -------------------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+```
+- hosts: kafka
+  roles:
+    - { role: mapr-kafka }
+```
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
 
 License
 -------
@@ -35,4 +39,4 @@ BSD
 Author Information
 ------------------
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+Vince Gonzalez - MapR Technologies
