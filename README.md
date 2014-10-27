@@ -8,8 +8,7 @@ Requirements
 
 You need a functional MapR cluster. You should know your zookeeper IP addresses, and you should install on nodes which are running mapr-fileserver and mapr-nfs.
 
-- Note that this currently is hard coded to use kafka 0.8.1.1. 
-- 
+* Note that this currently is hard coded to use kafka 0.8.1.1. 
 
 Role Variables
 --------------
