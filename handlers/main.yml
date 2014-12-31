@@ -1,2 +1,6 @@
 ---
 # handlers file for mapr-kafka
+
+- name: restart kafka
+  command: maprcli node services -action restart -name kafka -filter csvc==kafka
+  run_once: true

@@ -1,6 +1,10 @@
 ---
 # tasks file for mapr-kafka
 
+- name: register zookeeper ensemble string
+  command: maprcli node listzookeepers -noheader
+  register: zookeepers
+
 - name: download the kafka binary distribution
   get_url: dest=/tmp url=http://www.gtlib.gatech.edu/pub/apache/kafka/0.8.1.1/kafka_2.9.2-0.8.1.1.tgz sha256sum=cb141c1d50b1bd0d741d68e5e21c090341d961cd801e11e42fb693fa53e9aaed
 
@@ -13,8 +17,9 @@
 - name: fix log-cleaner.log location in log4j config
   lineinfile: dest=/opt/kafka_2.9.2-0.8.1.1/config/log4j.properties regexp="^log4j.appender.cleanerAppender.File" line="log4j.appender.cleanerAppender.File=${kafka.logs.dir}/log-cleaner.log"
 
-- name: set zookeeper in server.properties
-  lineinfile: dest=/opt/kafka_2.9.2-0.8.1.1/config/server.properties regexp="^zookeeper.connect" line="zookeeper.connect={{zookeeper}}" state=present
+- name: copy server.properties 
+  template: src=server.properties.j2 dest=/opt/kafka_2.9.2-0.8.1.1/config/server.properties mode=0640 owner=mapr group=mapr backup=true
+  notify: restart kafka
 
 - name: add a warden.conf for kafka
   template: src=warden.kafka.conf.j2 dest=/opt/mapr/conf/conf.d/warden.kafka.conf owner=mapr group=mapr
