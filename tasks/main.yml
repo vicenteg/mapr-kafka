@@ -2,30 +2,69 @@
 # tasks file for mapr-kafka
 
 - name: register zookeeper ensemble string
+  sudo_user: '{{mapr_admin_username}}'
   command: maprcli node listzookeepers -noheader
   register: zookeepers
 
 - name: download the kafka binary distribution
-  get_url: dest=/tmp url=http://www.gtlib.gatech.edu/pub/apache/kafka/0.8.1.1/kafka_2.9.2-0.8.1.1.tgz sha256sum=cb141c1d50b1bd0d741d68e5e21c090341d961cd801e11e42fb693fa53e9aaed
+  get_url: dest=/tmp url={{item.value.url}} sha256sum={{item.value.sha256sum}}
+  with_dict: kafka_download
+  environment: proxy_env
+
+- name: modify mapr_fstab to add nolock option to existing localhost mount (assumes all nodes have NFS)
+  lineinfile: dest=/opt/mapr/conf/mapr_fstab line='127.0.0.1:/mapr /mapr hard,nolock' regexp='^127'
+  notify: restart nfs server
+
+- name: create kafka home
+  sudo_user: root
+  file: state=directory owner='{{mapr_admin_username}}' group='{{mapr_admin_username}}' mode=0755 path={{item.value.creates}}
+  with_dict: kafka_download
 
 - name: unpack kafka to /opt
-  command: creates=/opt/kafka_2.9.2-0.8.1.1 tar -C /opt -xzf /tmp/kafka_2.9.2-0.8.1.1.tgz 
+  sudo_user: root
+  unarchive: copy=no dest=/opt/kafka owner='{{mapr_admin_username}}' mode=0755 src=/tmp/{{item.value.filename}}
+  with_dict: kafka_download
 
 - name: change logs/ owner to mapr:mapr
-  file: path=/opt/kafka_2.9.2-0.8.1.1/logs mode=0750 owner=mapr group=mapr state=directory
+  sudo_user: root
+  file: path={{item.value.creates}}/logs mode=0750 owner='{{mapr_admin_username}}' group='{{mapr_admin_username}}' state=directory
+  with_dict: kafka_download
 
 - name: fix log-cleaner.log location in log4j config
-  lineinfile: dest=/opt/kafka_2.9.2-0.8.1.1/config/log4j.properties regexp="^log4j.appender.cleanerAppender.File" line="log4j.appender.cleanerAppender.File=${kafka.logs.dir}/log-cleaner.log"
+  sudo_user: root
+  lineinfile: dest={{item.value.creates}}/config/log4j.properties regexp="^log4j.appender.cleanerAppender.File" line="log4j.appender.cleanerAppender.File=${kafka.logs.dir}/log-cleaner.log"
+  with_dict: kafka_download
 
-- name: copy server.properties 
-  template: src=server.properties.j2 dest=/opt/kafka_2.9.2-0.8.1.1/config/server.properties mode=0640 owner=mapr group=mapr backup=true
+- name: create a MapR FS local volume for Kafka logs
+  mapr_volume: state=present name=kafka.{{ansible_fqdn}} path={{kafka_logs_mfs_path}} localvolumehost={{inventory_hostname}} createparent=1 replication=1 minreplication=1 mapr_webserver={{mapr_webserver}} username={{mapr_admin_username}} password={{mapr_admin_password_clear|default("mapr")}}
+
+- name: copy server.properties
+  sudo_user: root
+  template: src=server.properties.j2 dest={{item.value.creates}}/config/server.properties mode=0640 owner='{{mapr_admin_username}}' group='{{mapr_admin_username}}' backup=true
+  with_dict: kafka_download
   notify: restart kafka
 
 - name: add a warden.conf for kafka
-  template: src=warden.kafka.conf.j2 dest=/opt/mapr/conf/conf.d/warden.kafka.conf owner=mapr group=mapr
+  sudo_user: root
+  template: src=warden.kafka.conf.j2 dest=/opt/mapr/conf/conf.d/warden.kafka.conf owner='{{mapr_admin_username}}' group='{{mapr_admin_username}}'
+  register: warden_configuration
+
+- name: pause to allow warden to detect kafka configuration
+  pause: seconds=35
+  when: warden_configuration|changed
 
 - name: copy a status script
-  copy: src=kafka-server-status.sh dest=/opt/kafka_2.9.2-0.8.1.1/bin mode=0755 owner=root group=root
+  sudo_user: root
+  copy: src=kafka-server-status.sh dest={{item.value.creates}}/bin mode=0755 owner=root group=root
+  with_dict: kafka_download
+  notify: restart kafka
 
 - name: edit kafka-server-stop.sh to change signal to SIGTERM instead of SIGINT
-  lineinfile: dest=/opt/kafka_2.9.2-0.8.1.1/bin/kafka-server-stop.sh line="ps ax | grep -i 'kafka\.Kafka' | grep java | grep -v grep | awk '{print $1}' | xargs kill -SIGTERM" regexp="SIGINT"
+  sudo_user: root
+  lineinfile: dest={{item.value.creates}}/bin/kafka-server-stop.sh line="ps ax | grep -i 'kafka\.Kafka' | grep java | grep -v grep | awk '{print $1}' | xargs kill -SIGTERM" regexp="SIGINT"
+  with_dict: kafka_download
+  notify: restart kafka
+
+- name: write kafka benchmark script
+  sudo_user: '{{mapr_admin_username}}'
+  template: src=kafka-benchmark.sh.j2 dest=/tmp/kafka-benchmark.sh mode=0755

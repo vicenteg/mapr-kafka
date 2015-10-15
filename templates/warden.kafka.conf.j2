@@ -1,13 +1,13 @@
 service.displayname=kafka
 service.process.type=JAVA
 services=kafka:all
-service.command.start=/opt/kafka_2.9.2-0.8.1.1/bin/kafka-server-start.sh -daemon /opt/kafka_2.9.2-0.8.1.1/config/server.properties
-service.command.stop=/opt/kafka_2.9.2-0.8.1.1/bin/kafka-server-stop.sh
+service.command.start=/opt/kafka/kafka_{{scala_version}}-{{kafka_version}}/bin/kafka-server-start.sh -daemon /opt/kafka/kafka_{{scala_version}}-{{kafka_version}}/config/server.properties
+service.command.stop=/opt/kafka/kafka_{{scala_version}}-{{kafka_version}}/bin/kafka-server-stop.sh
 service.command.type=BACKGROUND
-service.command.monitorcommand=/opt/kafka_2.9.2-0.8.1.1/bin/kafka-server-status.sh
+service.command.monitorcommand=/opt/kafka/kafka_{{scala_version}}-{{kafka_version}}/bin/kafka-server-status.sh
 service.alarm.tersename=kafka
 service.port=9092
 service.ui.port=8888
 service.uri=about
-service.logs.location=/opt/kafka_2.9.2-0.8.1.1/logs
+service.logs.location=/opt/kafka/kafka_{{scala_version}}-{{kafka_version}}/logs
 
