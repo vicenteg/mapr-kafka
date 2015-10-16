@@ -12,6 +12,7 @@
   environment: proxy_env
 
 - name: modify mapr_fstab to add nolock option to existing localhost mount (assumes all nodes have NFS)
+  sudo_user: root
   lineinfile: dest=/opt/mapr/conf/mapr_fstab line='127.0.0.1:/mapr /mapr hard,nolock' regexp='^127'
   notify: restart nfs server
 
