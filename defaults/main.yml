@@ -19,6 +19,12 @@ kafka_download:
     dir: /opt/kafka
     creates: /opt/kafka/kafka_{{scala_version}}-{{kafka_version}}
     sha256sum: 3ba1967ee88c7f364964c8a8fdf6f5075dcf7572f8c9eb74f0285b308363ecab
+  0.9.0.0:
+    url: http://mirror.cc.columbia.edu/pub/software/apache/kafka/{{kafka_version}}/kafka_{{scala_version}}-{{kafka_version}}.tgz
+    filename: kafka_{{scala_version}}-{{kafka_version}}.tgz
+    dir: /opt/kafka
+    creates: /opt/kafka/kafka_{{scala_version}}-{{kafka_version}}
+    sha256sum: 46a92acf20f626e08b86c39f610388250c538883030f956e935a37b7688ce53e
 
 proxy_env: { }
 
