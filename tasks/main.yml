@@ -32,7 +32,9 @@
   lineinfile: dest={{kafka_download[kafka_version].creates}}/config/log4j.properties regexp="^log4j.appender.cleanerAppender.File" line="log4j.appender.cleanerAppender.File=${kafka.logs.dir}/log-cleaner.log"
 
 - name: create a MapR FS local volume for Kafka logs
-  mapr_volume: state=present name=kafka.{{ansible_fqdn}} path={{kafka_logs_mfs_path}} localvolumehost={{inventory_hostname}} createparent=1 replication=1 minreplication=1 mapr_webserver={{mapr_webserver}} username={{mapr_admin_username}} password={{mapr_admin_password_clear|default("mapr")}}
+  run_once: yes
+  mapr_volume: state=present name=kafka.{{hostvars[item].ansible_fqdn}} path=/apps/kafka/kafka-logs.{{hostvars[item].ansible_fqdn}} localvolumehost={{hostvars[item].inventory_hostname}} createparent=1 replication=1 minreplication=1 mapr_webserver={{mapr_webserver}} username={{mapr_admin_username}} password={{mapr_admin_password_clear|default("mapr")}}
+  with_items: groups["kafka"]
 
 - name: copy server.properties
   sudo_user: root
