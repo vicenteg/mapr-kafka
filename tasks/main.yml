@@ -10,9 +10,14 @@
   get_url: dest=/tmp url={{kafka_download[kafka_version].url}} sha256sum={{kafka_download[kafka_version].sha256sum}}
   environment: proxy_env
 
+- name: check for /opt/mapr/conf/mapr_fstab
+  stat: path=/opt/mapr/conf/mapr_fstab
+  register: mapr_fstab
+
 - name: modify mapr_fstab to add nolock option to existing localhost mount (assumes all nodes have NFS)
   sudo_user: root
   lineinfile: dest=/opt/mapr/conf/mapr_fstab line='127.0.0.1:/mapr /mapr hard,nolock' regexp='^127'
+  when: mapr_fstab.stat.exists
   notify: restart nfs server
 
 - name: create kafka home
