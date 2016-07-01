@@ -2,7 +2,8 @@
 # tasks file for mapr-kafka
 
 - name: register zookeeper ensemble string
-  sudo_user: '{{mapr_admin_username}}'
+  become: yes
+  become_user: '{{mapr_admin_username}}'
   command: maprcli node listzookeepers -noheader
   register: zookeepers
 
@@ -15,25 +16,30 @@
   register: mapr_fstab
 
 - name: modify mapr_fstab to add nolock option to existing localhost mount (assumes all nodes have NFS)
-  sudo_user: root
+  become: yes
+  become_user: root
   lineinfile: dest=/opt/mapr/conf/mapr_fstab line='127.0.0.1:/mapr /mapr hard,nolock' regexp='^127'
   when: mapr_fstab.stat.exists
   notify: restart nfs server
 
 - name: create kafka home
-  sudo_user: root
+  become: yes
+  become_user: root
   file: state=directory owner='{{mapr_admin_username}}' group='{{mapr_admin_username}}' mode=0755 path={{kafka_download[kafka_version].creates}}
 
 - name: unpack kafka to /opt
-  sudo_user: root
+  become: yes
+  become_user: root
   unarchive: copy=no dest=/opt/kafka owner='{{mapr_admin_username}}' mode=0755 src=/tmp/{{kafka_download[kafka_version].filename}}
 
 - name: change logs/ owner to mapr:mapr
-  sudo_user: root
+  become: yes
+  become_user: root
   file: path={{kafka_download[kafka_version].creates}}/logs mode=0750 owner='{{mapr_admin_username}}' group='{{mapr_admin_username}}' state=directory
 
 - name: fix log-cleaner.log location in log4j config
-  sudo_user: root
+  become: yes
+  become_user: root
   lineinfile: dest={{kafka_download[kafka_version].creates}}/config/log4j.properties regexp="^log4j.appender.cleanerAppender.File" line="log4j.appender.cleanerAppender.File=${kafka.logs.dir}/log-cleaner.log"
 
 - name: create a MapR FS local volume for Kafka logs
@@ -42,12 +48,14 @@
   with_items: groups["kafka"]
 
 - name: copy server.properties
-  sudo_user: root
+  become: yes
+  become_user: root
   template: src=server.properties.j2 dest={{kafka_download[kafka_version].creates}}/config/server.properties mode=0640 owner='{{mapr_admin_username}}' group='{{mapr_admin_username}}' backup=true
   notify: restart kafka
 
 - name: add a warden.conf for kafka
-  sudo_user: root
+  become: yes
+  become_user: root
   template: src=warden.kafka.conf.j2 dest=/opt/mapr/conf/conf.d/warden.kafka.conf owner='{{mapr_admin_username}}' group='{{mapr_admin_username}}'
   register: warden_configuration
 
@@ -56,15 +64,18 @@
   when: warden_configuration|changed
 
 - name: copy a status script
-  sudo_user: root
+  become: yes
+  become_user: root
   copy: src=kafka-server-status.sh dest={{kafka_download[kafka_version].creates}}/bin mode=0755 owner=root group=root
   notify: restart kafka
 
 - name: edit kafka-server-stop.sh to change signal to SIGTERM instead of SIGINT
-  sudo_user: root
+  become: yes
+  become_user: root
   lineinfile: dest={{kafka_download[kafka_version].creates}}/bin/kafka-server-stop.sh line="ps ax | grep -i 'kafka\.Kafka' | grep java | grep -v grep | awk '{print $1}' | xargs kill -SIGTERM" regexp="SIGINT"
   notify: restart kafka
 
 - name: write kafka benchmark script
-  sudo_user: '{{mapr_admin_username}}'
+  become: yes
+  become_user: '{{mapr_admin_username}}'
   template: src=kafka-benchmark.sh.j2 dest=/tmp/kafka-benchmark.sh mode=0755
